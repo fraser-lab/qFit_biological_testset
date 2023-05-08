@@ -52,29 +52,35 @@ def parse_molprobity_scores(file_path):
                     towrite+=lineparts[1].strip()
     return towrite
 
-directory_path = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final/"
-files = [f for f in os.listdir(directory_path) if f.endswith("validation.txt")]
 
-data = []
-for file in files:
-    file_path = os.path.join(directory_path, file)
-    molprobity_scores = parse_molprobity_scores(file_path)
-    PDB = file[:4]
-    molprobity_scores = PDB + "," + molprobity_scores
-    data.append(molprobity_scores.split(","))
 
-df = pd.DataFrame(data, columns=["PDB", "", "Ramachandran outliers", "Ramachandran favored", "Rotamer outliers", "C-beta deviations", "Clashscore", "RMS(bonds)", "RMS(angles)", "MolProbity score"])
 
-# loop through each column in df[2:] and make the column type numeric
-df.iloc[:, 2:] = df.iloc[:, 2:].apply(pd.to_numeric, errors='coerce')
 
-df = df[df['C-beta deviations']<3]
 
-single_molprobilty = pd.read_csv('/Users/stephaniewanko/Downloads/temp/qfit_test_set/original_structs_molprob_eval.csv')
-print(df.head())
-print(single_molprobilty.head())
+def read_files(directory_path):
+    files = [f for f in os.listdir(directory_path) if f.endswith("validation.txt")]
+    data = []
+    for file in files:
+        file_path = os.path.join(directory_path, file)
+        molprobity_scores = parse_molprobity_scores(file_path)
+        PDB = file[:4]
+        molprobity_scores = PDB + "," + molprobity_scores
+        data.append(molprobity_scores.split(","))
 
-    # loop through each column in the dataframe except for PDB and blank
+    df = pd.DataFrame(data, columns=["PDB", "", "Ramachandran outliers", "Ramachandran favored", "Rotamer outliers", "C-beta deviations", "Clashscore", "RMS(bonds)", "RMS(angles)", "MolProbity score"])
+
+    # loop through each column in df[2:] and make the column type numeric
+    df.iloc[:, 2:] = df.iloc[:, 2:].apply(pd.to_numeric, errors='coerce')
+    return df
+
+
+directory_path_multi = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final/"
+directory_path_single = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/single/"
+df = read_files(directory_path_multi)
+single_molprobity = read_files(directory_path_single)
+
+
+
 
 # Use sns.histplot instead of sns.kdeplot for histogram
 for col in df.columns[2:]:
