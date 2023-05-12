@@ -75,7 +75,7 @@ def read_files(directory_path):
 
 
 directory_path_multi = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final/"
-directory_path_single = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/single/"
+directory_path_single = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/single_conf/"
 df = read_files(directory_path_multi)
 single_molprobity = read_files(directory_path_single)
 
@@ -85,10 +85,10 @@ single_molprobity = read_files(directory_path_single)
 # Use sns.histplot instead of sns.kdeplot for histogram
 for col in df.columns[2:]:
     df[col] = pd.to_numeric(df[col], errors='coerce')
-    single_molprobilty[col] = pd.to_numeric(single_molprobilty[col], errors='coerce')
+    single_molprobity[col] = pd.to_numeric(single_molprobilty[col], errors='coerce')
     # create a histplot of the column
     hist_df = sns.histplot(x=col, data=df, color='blue', kde=False, bins=12, alpha=0.5)
-    hist_single = sns.histplot(x=col, data=single_molprobilty, color='green', kde=False, bins=12, alpha=0.5)
+    hist_single = sns.histplot(x=col, data=single_molprobity, color='green', kde=False, bins=12, alpha=0.5)
 
     # set the title of the histogram to the name of the column
     plt.title(col + " histplot")
@@ -105,4 +105,3 @@ for col in df.columns[2:]:
     # clear the current figure
     plt.clf()
     
-
