@@ -55,8 +55,6 @@ def parse_molprobity_scores(file_path):
 
 
 
-
-
 def read_files(directory_path):
     files = [f for f in os.listdir(directory_path) if f.endswith("validation.txt")]
     data = []
@@ -74,7 +72,7 @@ def read_files(directory_path):
     return df
 
 
-directory_path_multi = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final/"
+directory_path_multi = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final2/"
 directory_path_single = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/single_conf/"
 df = read_files(directory_path_multi)
 single_molprobity = read_files(directory_path_single)
@@ -85,21 +83,39 @@ single_molprobity = read_files(directory_path_single)
 # Use sns.histplot instead of sns.kdeplot for histogram
 for col in df.columns[2:]:
     df[col] = pd.to_numeric(df[col], errors='coerce')
-    single_molprobity[col] = pd.to_numeric(single_molprobilty[col], errors='coerce')
+    single_molprobity[col] = pd.to_numeric(single_molprobity[col], errors='coerce')
     # create a histplot of the column
-    hist_df = sns.histplot(x=col, data=df, color='blue', kde=False, bins=12, alpha=0.5)
-    hist_single = sns.histplot(x=col, data=single_molprobity, color='green', kde=False, bins=12, alpha=0.5)
+    # set the title of the histogram to the name of the column
+        # Determine the range of values for both datasets
+    min_value = min(df[col].min(), single_molprobity[col].min())
+    max_value = max(df[col].max(), single_molprobity[col].max())
 
+    # Create a common bin size for both histograms
+    bins = np.linspace(min_value, max_value, 13)
+
+
+    hist_single = sns.histplot(x=col, data=single_molprobity, color='darkgreen', bins=bins, kde=False, alpha=1.0, label='qFit Model')
+    hist_df = sns.histplot(x=col, data=df, color='darkmagenta', kde=False, bins=bins, alpha=0.8, label='Deposited Model')
+    plt.legend()
     # set x-axis label
     plt.xlabel(col)
     # set y-axis label
     plt.ylabel("Count")
-
-    # Add legend
-    plt.legend(["qFit Model", "Deposited Model"])
-
-    #  save the histplot as a figure with the name of the column + histplot
-    plt.savefig(col + "_histplot.png")
-    # clear the current figure
+    # Save the stacked histplot as a figure with the name of the column + stacked_histplot
+    plt.savefig(col + "_stacked_histplot.png")
+    # Clear the current figure
     plt.clf()
     
+# Calculate the median, Q1, and Q3 for each column in the qFit and single df
+qfit_summary = df.iloc[:, 2:].describe().loc[['25%', '50%', '75%']]
+single_summary = single_molprobity.iloc[:, 2:].describe().loc[['25%', '50%', '75%']]
+
+# Rename the index for better readability
+qfit_summary.index = ['Q1 (qFit)', 'Median (qFit)', 'Q3 (qFit)']
+single_summary.index = ['Q1 (Single)', 'Median (Single)', 'Q3 (Single)']
+
+# Combine the two summary dataframes
+combined_summary = pd.concat([qfit_summary, single_summary])
+
+# Print the combined summary dataframe
+print(combined_summary)
