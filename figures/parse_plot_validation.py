@@ -90,8 +90,6 @@ for col in df.columns[2:]:
     hist_df = sns.histplot(x=col, data=df, color='blue', kde=False, bins=12, alpha=0.5)
     hist_single = sns.histplot(x=col, data=single_molprobity, color='green', kde=False, bins=12, alpha=0.5)
 
-    # set the title of the histogram to the name of the column
-    plt.title(col + " histplot")
     # set x-axis label
     plt.xlabel(col)
     # set y-axis label
