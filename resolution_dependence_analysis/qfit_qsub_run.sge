@@ -1,0 +1,61 @@
+#!/bin/bash 
+#$ -N composite_and_qfit_refine
+#$ -cwd
+#$ -j y  
+#$ -t 1-23
+#$ -pe smp 4
+##$ -tc 12
+#$ -l mem_free=8G
+#$ -l h_rt=6:00:00
+#$ -R yes
+
+PDB_file=/wynton/home/fraserlab/aravikumar/qfit_summit/summit_2/macdomain_maps/qfit_input_list.txt
+base_dir='/wynton/home/fraserlab/aravikumar/qfit_summit/summit_2/macdomain_maps'
+
+export OMP_NUM_THREADS=1
+
+source /wynton/home/fraserlab/aravikumar/software/phenix-1.19.2-4158/phenix_env.sh
+export PATH="/wynton/home/fraserlab/aravikumar/miniconda3/bin:$PATH"
+source activate qfit_bfactor
+
+my_line=$(cat $PDB_file | head -n $SGE_TASK_ID | tail -n 1)
+PDB_id=`echo $my_line | cut -d "," -f 1`
+resol=`echo $my_line | cut -d "," -f 2`
+echo $PDB_id $resol
+PDB_dir=${PDB_id}
+
+cd ${base_dir}/${PDB_dir}
+
+xray_data_labels="FSIM,SIGFSIM"
+echo "input.xray_data.labels=$xray_data_labels" > composite_omit.params
+echo "input.xray_data.r_free_flags.label=R-free-flags" >> composite_omit.params
+echo "input.xray_data.r_free_flags.generate=False" >> composite_omit.params
+echo "omit_map.omit_type=refine" >> composite_omit.params
+echo "parallel.nproc=4" >> composite_omit.params
+
+cd resol_${resol}
+if [ -f "${PDB_dir}_resol_${resol}_shake_noisy_single_001.pdb" ]; then
+	if [ ! -f "${PDB_dir}_resol_${resol}_composit_omit_map.mtz" ]; then
+		echo $PDB_dir $resol >> ${base_dir}/composite_omit_running
+		phenix.composite_omit_map ${PDB_dir}_resol_${resol}_shake_noisy.mtz ${PDB_dir}_resol_${resol}_shake_noisy_single_001.pdb output.file_name=${PDB_dir}_resol_${resol}_composit_omit_map.mtz composite_omit.params
+		if [ -f "${PDB_dir}_resol_${resol}_composit_omit_map.mtz" ]; then
+			echo $PDB_dir $resol >> ${base_dir}/composite_omit_done
+			if [ ! -f "qfit_outputs/multiconformer_model2.pdb" ]; then
+				echo $PDB_dir $resol >> ${base_dir}/qfit_protein_running
+				qfit_protein ${PDB_dir}_resol_${resol}_composit_omit_map.mtz -l 2FOFCWT,PH2FOFCWT ${PDB_dir}_resol_${resol}_shake_noisy_single_001.pdb -d qfit_outputs -p 4
+				if [ -f "qfit_outputs/multiconformer_model2.pdb" ]; then
+					echo $PDB_dir $resol >> ${base_dir}/qfit_protein_done
+				else
+					echo $PDB_dir $resol >> ${base_dir}/qfit_protein_failed
+				fi	
+			fi
+		else
+			echo $PDB_dir $resol >> ${base_dir}/composite_omit_failed
+		fi
+	fi
+else
+	echo $PDB_dir,$resol >> ${base_dir}/pre_qfit_refine_pending
+fi
+
+cd ..
+
