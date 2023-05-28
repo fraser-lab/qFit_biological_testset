@@ -1,4 +1,4 @@
-# qFit_biological_testset
+# Analysing resolution dependence of qFit
 
 Prerequisites: PHENIX, CCP4 and qFit
 Instructions to run the qFit resolution dependence analysis:
@@ -24,3 +24,4 @@ Before running scripts for generating figures, the rotamer states of residues ne
 2. *mapq_calculate_qscore.sh* - This script calculates Q-score for every atom in the input structure using mapq package along with Chimera. This done for the ground truth models and qFit output models
 3. *compare_qscore.py* - This reproduces figure 4D
 
+Run the .pml scripts in pymol to reproduce Figure 4C
