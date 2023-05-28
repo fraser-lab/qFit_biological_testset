@@ -1,0 +1,48 @@
+#!/bin/bash 
+#$ -N pre_qfit_refine
+#$ -cwd
+#$ -j y  
+#$ -t 1-23
+#$ -pe smp 4
+##$ -tc 12
+#$ -l mem_free=8G
+#$ -l h_rt=5:00:00
+#$ -R yes
+
+PDB_file=/wynton/home/fraserlab/aravikumar/qfit_summit/summit_2/macdomain_maps/qfit_input_list.txt
+base_dir='/wynton/home/fraserlab/aravikumar/qfit_summit/summit_2/macdomain_maps'
+
+export OMP_NUM_THREADS=1
+
+source /wynton/home/fraserlab/aravikumar/software/phenix-1.19.2-4158/phenix_env.sh
+export PATH="/wynton/home/fraserlab/aravikumar/miniconda3/bin:$PATH"
+source activate qfit_bfactor
+
+my_line=$(cat $PDB_file | head -n $SGE_TASK_ID | tail -n 1)
+PDB_id=`echo $my_line | cut -d "," -f 1`
+resol=`echo $my_line | cut -d "," -f 2`
+echo $PDB_id $resol
+PDB_dir=${PDB_id}
+
+
+cd ${base_dir}/${PDB_dir}
+mkdir resol_${resol}
+cd resol_${resol}
+cp ../single_conformer_pdbs/${PDB_dir}_shift_bfac_resol_${resol}_p1_one_conf.pdb .
+cp ../shaken_maps/${PDB_dir}_resol_${resol}_shake_refine.mtz .
+cp ../complex_noise_maps/${PDB_dir}_resol_${resol}_shake_noisy.mtz .
+../../single_refinement.sh ${PDB_dir}_resol_${resol}_shake_refine.mtz ${PDB_dir}_shift_bfac_resol_${resol}_p1_one_conf.pdb
+if [ -f "${PDB_dir}_resol_${resol}_shake_refine_single_001.pdb" ]; then
+	echo $PDB_dir $resol >> ${base_dir}/shake_refine_done
+    ../../single_refinement.sh ${PDB_dir}_resol_${resol}_shake_noisy.mtz ${PDB_dir}_resol_${resol}_shake_refine_single_001.pdb
+    if [ -f "${PDB_dir}_resol_${resol}_shake_noisy_single_001.pdb" ]; then
+    	echo $PDB_dir $resol >> ${base_dir}/noise_refine_done
+    else
+       	echo $PDB_dir $resol >> ${base_dir}/noise_refine_failed
+	fi
+else
+	echo $PDB_dir $resol >> ${base_dir}/shake_refine_failed
+fi
+cd ..
+
+
