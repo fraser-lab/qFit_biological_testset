@@ -94,16 +94,14 @@ for col in df.columns[2:]:
     base[col] = pd.to_numeric(base[col], errors='coerce')
     
     # Determine the range of values for both datasets
-    min_value = min(df[col].min(), base[col].min())
-    max_value = max(df[col].max(), base[col].max())
+    min_value = min(new[col].min(), base[col].min())
+    max_value = max(new[col].max(), base[col].max())
     
 
     # Run a ttest between the values in the df[col] and the single_molprobity[col]
-    t_stat, p_val = ttest_ind(df[col].dropna(), single_molprobity[col].dropna())
+    t_stat, p_val = ttest_ind(new[col].dropna(), base[col].dropna())
     print(f'T-test results for {col}: T-Stat = {t_stat}, P-value = {p_val}')
     
-    if col == 'C-beta deviations':
-        max_value = 8
 
     # Create a common bin size for both histograms
     p1 = plt.figure()
@@ -122,10 +120,8 @@ for col in df.columns[2:]:
     
     sns.histplot(x=col, data=df, color='darkmagenta', kde=False, bins=bins, alpha=1.0, ax=ax1)
     ax1.set_ylabel("# of Structures")
-    #xlab = f'Number of residue with {col}' #(#Number of 
-    xlab = f'{col} (%)'#f'{col} ({degree_symbol})'
-    print(xlab)
-    ax1.legend(["qFit Model"])
+    xlab = f'{col}'
+    ax1.legend(["New qFit Model"])
     ax1.set_xlabel(xlab)
     #ax1.set_xticklabels([])  # Remove x-axis labels for the top subplot
 
@@ -133,7 +129,7 @@ for col in df.columns[2:]:
     sns.histplot(x=col, data=single_molprobity, color='darkgreen', kde=False, bins=bins, alpha=1.0, ax=ax2)
     ax2.set_ylabel("# of Structures")
 
-    ax2.legend(["Deposited Model"])
+    ax2.legend(["Baseline qFit Model"])
 
     # Save the stacked histplot as a figure with the name of the column + stacked_histplot
     # Increase the resolution of the figures
