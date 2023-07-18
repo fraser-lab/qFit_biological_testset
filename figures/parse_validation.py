@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 import numpy as np
-
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import ttest_ind
 
 
 def parse_molprobity_scores(file_path):
@@ -73,12 +73,12 @@ def read_files(directory_path):
 
 
 
-directory_path_multi = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/final2/"
-directory_path_single = "/Users/stephaniewanko/Downloads/temp/qfit_test_set/single_conf/"
-df = read_files(directory_path_multi)
-single_molprobity = read_files(directory_path_single)
-single_molprobity.to_csv('/Users/stephaniewanko/Downloads/temp/qfit_test_set/single_validation.csv')
-#df.to_csv('/Users/stephaniewanko/Downloads/temp/qfit_test_set/qFit_validation.csv')
+directory_path_new = "/final2/"
+directory_path_base = "/single_conf/"
+new = read_files(directory_path_new)
+base = read_files(directory_path_base)
+base.to_csv('base_qFit_validation.csv')
+new.to_csv('new_qFit_validation.csv')
 
 
 plt.rcParams.update({'font.size': 16})
@@ -88,14 +88,15 @@ sigma_symbol = "\u03A3"
 beta_symbol = "\u03B2"
 degree_symbol = '\u00b0'
 plt.rcParams["figure.dpi"] = 500
+
 for col in df.columns[2:]:
-    df[col] = pd.to_numeric(df[col], errors='coerce')
-    single_molprobity[col] = pd.to_numeric(single_molprobity[col], errors='coerce')
+    new[col] = pd.to_numeric(new[col], errors='coerce')
+    base[col] = pd.to_numeric(base[col], errors='coerce')
     
     # Determine the range of values for both datasets
-    min_value = min(df[col].min(), single_molprobity[col].min())
-    max_value = max(df[col].max(), single_molprobity[col].max())
-    from scipy.stats import ttest_ind
+    min_value = min(df[col].min(), base[col].min())
+    max_value = max(df[col].max(), base[col].max())
+    
 
     # Run a ttest between the values in the df[col] and the single_molprobity[col]
     t_stat, p_val = ttest_ind(df[col].dropna(), single_molprobity[col].dropna())
