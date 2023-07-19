@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-
-"""
-#from qfit import Structure
 import pandas as pd
 import os
 import glob
@@ -155,30 +151,10 @@ def plot_results(all_, alt_):
     # Save the bar plot to a file
     plt.savefig(f'RotamerStatus_stacked_bars.png')
     
-def save_legend():
-    print('save legend')
-    # Define the colors and labels for the legend
-    colors = ['#191970', '#097969', '#FF5733', '#C70039', '#FFC300']
-    labels = ['Consistent Rotamer(s)', 'Different Rotamer(s)', 'Additional Rotamer(s) in qFit', 'Additional Rotamer(s) in Deposited', 'Consistent & Different Rotamers']
-
-    # Create a figure and axis
-    fig, ax = plt.subplots()
-
-    # Create the legend handles with colored boxes
-    handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in colors]
-
-    # Create the legend with the handles and labels
-    legend = ax.legend(handles, labels, loc='upper right')
-
-    # Set the title for the legend
-    legend.set_title('Legend')
-    fig.savefig('/Users/stephaniewanko/Downloads/temp/qfit_test_set/RotamerStatus_legend.png', bbox_inches='tight', dpi=600)
-
 
 def main():
-    qfit = read_files('/Users/stephaniewanko/Downloads/temp/qfit_test_set', 'final2', 58,62)
-    single = read_files('/Users/stephaniewanko/Downloads/temp/qfit_test_set', 'single_conf', 63, 67)
-    unique_pdbs = set(single['PDB'].unique()).intersection(qfit['PDB'].unique())
+    qfit = read_files('/Users/stephaniewanko/Downloads/temp/qfit_test_set', 'final2', 58, 62)
+    single = read_files('/Users/stephaniewanko/Downloads/temp/qfit_test_set', 'single_conf', 63,67)
 
     # Define an empty list to store comparison results
     results = []
@@ -235,8 +211,6 @@ def main():
     all_ = calc_sum(results_df)
     print('Alt:')
     alt_ = calc_sum(results_df_alt)  
-
-    save_legend()
 
     # Save the DataFrame to a CSV file
     results_df.to_csv("comparison_results.csv", index=False)
