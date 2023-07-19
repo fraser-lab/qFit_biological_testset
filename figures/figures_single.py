@@ -53,22 +53,18 @@ def read_files(base_dir, comparison, file_start, file_end):
 
 def compare_rvalues(comparison_rvalues, original_rvalues, comparison, base_dir):
     original_rvalues.columns = 'original_' + original_rvalues.columns.values
-    comparison_rvalues.columns = 'b_factor' + '_' + comparison_rvalues.columns.values
+    comparison_rvalues.columns = 'new_' + comparison_rvalues.columns.values
 
-    comparison_Rfree = 'b_factor' + '_Rfree_qFit'
+    comparison_Rfree = comparison + '_Rfree_qFit'
     r_values = comparison_rvalues
 
     #calculating the difference in rvalues between each step
-    r_values['Rfree_Differences'] = r_values['b_factor_Rfree_pre'] - r_values[comparison_Rfree]
-    r_values['Rgap_deposited'] = r_values['b_factor_Rwork_pre'] - r_values['b_factor_Rfree_pre']
-    r_values['Rgap_qFit'] = r_values['b_factor_Rwork_qFit'] - r_values['b_factor_Rfree_qFit']
+    r_values['Rfree_Differences'] = r_values['old_Rfree_pre'] - r_values['new_Rfree']
     
     
     r_values['Rfree_improve'] = np.where(((r_values['b_factor_Rfree_pre'] - r_values[comparison_Rfree]) > 0), 1, 0)
     improvement_ratio = len(r_values[r_values['Rfree_improve']==1].index) / len(r_values.index)
     print(f'We improve the R-free value in {improvement_ratio} of strucrures.')
-    print(r_values.head())
-    r_values.to_csv(os.path.join(base_dir, 'r_values_comp_single.csv'))
 
     rfree_pre_min = r_values['b_factor_Rfree_pre'].min()
     rfree_pre_max = r_values['b_factor_Rfree_pre'].max()
@@ -118,130 +114,20 @@ def compare_rvalues(comparison_rvalues, original_rvalues, comparison, base_dir):
     plt.savefig(os.path.join(base_dir, 'Rgap_distribution_single.png'))
 
 
-
-def compare_rotamer(original_rotamer, comparison_rotamer, comparison, base_dir):    
-    original_rotamer.columns = 'original_' + original_rotamer.columns.values
-    comparison_rotamer.columns = comparison + '_' + comparison_rotamer.columns.values
-
-    comparison_PDB = comparison + '_PDB'
-    comparison_chain = comparison + '_chain'
-    comparison_resi = comparison + '_resi'
-    rotamer_all = original_rotamer.merge(comparison_rotamer, left_on=['original_PDB', 'original_chain', 'original_resi'], right_on=[comparison_PDB, comparison_chain, comparison_resi])
-    rotamer_all['chain_resi'] = rotamer_all['original_chain'] + '_' + rotamer_all['original_resi'].astype(str)
-    comp_rotamer= rotamer_subset_compare(rotamer_all, comparison)
-
-    comp
-
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-
-font = {'family' : 'normal',
-        'weight' : 'normal',
-        'size'   : 12}
-
-matplotlib.rc('font', **font)
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Compare the results of different water picking methods')
-    parser.add_argument('--base_dir', type=str, help='The base directory of the water picking results')
-    parser.add_argument('--comparison', type=str, help='The name of the comparison method')
-    return parser.parse_args()
-
-def rotamer_subset_compare(subset_rotamer, comparison):
-    rotamer_ = []
-    comparison_rotamer = comparison + '_rotamer'
-    for i in subset_rotamer['original_PDB'].unique():
-        tmp = subset_rotamer[subset_rotamer['original_PDB'] == i]
-        for r in tmp['chain_resi'].unique():
-            num_original = len(set(tmp[tmp['chain_resi'] == r][f'original_rotamer']))
-            num_compairson = len(set(tmp[tmp['chain_resi'] == r][comparison_rotamer]))
-            if set(tmp[tmp['chain_resi']==r]['original_rotamer']) - set(tmp[tmp['chain_resi']==r][comparison_rotamer]):
-                rotamer = 'Different'
-            #elif bool(set(tmp[tmp['chain_resi']==r]['original_rotamer']) & set(tmp[tmp['chain_resi']==r][comparison_rotamer])) == True:
-            if len(set(tmp[tmp['chain_resi']==r]['original_rotamer'])) > len(set(tmp[tmp['chain_resi']==r][comparison_rotamer])):
-                    rotamer = 'Gain in Original'
-            elif len(set(tmp[tmp['chain_resi']==r]['original_rotamer'])) < len(set(tmp[tmp['chain_resi']==r][comparison_rotamer])):
-                    rotamer = 'Gain in Comparison'
-            else:
-                rotamer = 'Same'
-            rotamer_.append(tuple((i, r, rotamer, num_original, num_compairson)))
-    rotamer_comp = pd.DataFrame(rotamer_, columns =['PDB', 'chain_resi', 'Rotamer', 'Num_Original', 'Num_Comp'])
-    return rotamer_comp
-
-
-def read_files(base_dir, comparison, file_start, file_end):
-    #bfactors
-    all_files = glob.glob(base_dir + '/' + comparison + "/*B_factors.csv")
-    li = []
-
-    for filename in all_files:
-        df = pd.read_csv(filename, index_col=None, sep=',', header=0)
-        df['PDB'] = filename[file_start:file_end] #file_start:file_end
-        li.append(df)
-    b_factor = pd.concat(li, axis=0, ignore_index=True)
-    b_factor['category'] = comparison
-
-    #rotamers
-    all_files = glob.glob(base_dir + '/' + comparison + "/*_rotamer_output.txt")
-    li = []
-    for filename in all_files:
-        try:
-            df = pd.read_csv(filename, index_col=None, header=0, sep=':')
-        except pd.errors.EmptyDataError:
-            continue  
-        df['PDB'] = filename[file_start:file_end]
-        li.append(df)
-    rotamer = pd.concat(li, axis=0, ignore_index=True)
-    rotamer['category'] = comparison
-    rotamer = rotamer[rotamer['residue']!= 'SUMMARY'].reset_index()
-    split = rotamer['residue'].str.split(" ")
-    for i in range(0, (len(rotamer.index)-1)):
-        rotamer.loc[i,'chain'] = split[i][1]
-        STUPID = str(rotamer.loc[i,'residue'])[3:6]
-        tmp = []
-        try:
-            tmp = (int(''.join(i for i in STUPID if i.isdigit())))
-        except:
-            newstr = ''.join((ch if ch in '0123456789.-e' else ' ') for ch in STUPID)
-            tmp = [float(i) for i in newstr.split()]
-        rotamer.loc[i, 'resi'] = tmp
-
-    #rvalues
-    all_files = glob.glob(base_dir + '/' + comparison +  "/*_rvalues.csv")
-    li = []
-
-    for filename in all_files:
-        df = pd.read_csv(filename, index_col = None, sep=',', header=0)
-        df['PDB'] = filename[file_start:file_end]
-        li.append(df)
-    r_values = pd.concat(li, axis=0, ignore_index=True)
-    return b_factor, r_values, rotamer
-
-
-
-
 def compare_bfactor(original_bfactor, comparison_bfactor, comparison, base_dir): 
     original_bfactor.columns = 'original_' + original_bfactor.columns.values
-    comparison_bfactor.columns = 'b_factor' + '_' + comparison_bfactor.columns.values
-    comparison = 'b_factor'
+    comparison_bfactor.columns = comparison + '_' + comparison_bfactor.columns.values
     comparison_PDB = comparison + '_PDB'
     comparison_chain = comparison + '_chain'
     comparison_resi = comparison + '_resi'
-    comparison_b = 'b_factor' + '_b_factor'
-    comparison_altloc = 'b_factor' + '_num_altlocs'
+    comparison_b = comparison + '_b_factor'
+    comparison_altloc = comparison + '_num_altlocs'
 
-    print('number of residues:')
-    print(len(original_bfactor.index))
-    print('number alt loc in original:')
-    print(len(original_bfactor[original_bfactor['original_num_altoc']>1].index))
-    print('number alt loc in qFit:')
-    print(len(comparison_bfactor[comparison_bfactor[comparison_altloc]>1].index))
+    
     b_factor_all = original_bfactor.merge(comparison_bfactor, left_on=['original_PDB', 'original_chain', 'original_resi'], right_on=[comparison_PDB, comparison_chain, comparison_resi])
     b_factor_all['bfactor_diff'] =  b_factor_all[comparison_b] - b_factor_all['original_b_factor']
     b_factor_all['altloc_diff'] = b_factor_all[comparison_altloc]- b_factor_all['original_num_altoc']
-    print('b-factors')
-    print(len(np.unique(b_factor_all['original_PDB'])))
-    b_factor_all =b_factor_all[b_factor_all['altloc_diff']<5]
+
     #compare altlocs
     fig = plt.figure()
     ax = sns.countplot(x='altloc_diff', data=b_factor_all, color='#24248f')
@@ -281,16 +167,16 @@ def compare_bfactor(original_bfactor, comparison_bfactor, comparison, base_dir):
     print(f'Median Altloc difference: {b_factor_all["altloc_diff"].median()}')
     print(f'Mean Altloc difference: {b_factor_all["altloc_diff"].mean()}')
 
-    # print('The following residues gain more than two altloc, you should look at them:')
-    # print(b_factor_all[b_factor_all['altloc_diff'] > 2][['original_PDB', 'original_chain', 'original_resi', 'original_num_altoc', comparison_altloc]])
+    print('The following residues gain more than two altloc, you should look at them:')
+    print(b_factor_all[b_factor_all['altloc_diff'] > 2][['original_PDB', 'original_chain', 'original_resi', 'original_num_altoc', comparison_altloc]])
 
-    # print('The following residues lose more than two altloc, you should look at them:')
-    # print(b_factor_all[b_factor_all['altloc_diff'] < -2][['original_PDB', 'original_chain', 'original_resi', 'original_num_altoc', comparison_altloc]])
+    print('The following residues lose more than two altloc, you should look at them:')
+    print(b_factor_all[b_factor_all['altloc_diff'] < -2][['original_PDB', 'original_chain', 'original_resi', 'original_num_altoc', comparison_altloc]])
 
 
-    # print('The following residues have a bfactor difference greater than 100, you should look at them:')
-    # print(b_factor_all[b_factor_all['bfactor_diff'] > 100][['original_PDB', 'original_chain', 'original_resi', 'original_b_factor', comparison_b]])
-    # print(b_factor_all[b_factor_all['bfactor_diff'] < -100][['original_PDB', 'original_chain', 'original_resi', 'original_b_factor', comparison_b]])
+    print('The following residues have a bfactor difference greater than 100, you should look at them:')
+    print(b_factor_all[b_factor_all['bfactor_diff'] > 100][['original_PDB', 'original_chain', 'original_resi', 'original_b_factor', comparison_b]])
+    print(b_factor_all[b_factor_all['bfactor_diff'] < -100][['original_PDB', 'original_chain', 'original_resi', 'original_b_factor', comparison_b]])
 
 
 def main():
